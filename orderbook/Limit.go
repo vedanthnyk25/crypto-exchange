@@ -27,15 +27,27 @@ func NewLimit(price float64) *Limit {
 }
 
 func (l *Limit) Fill(o *Order) []Match {
-	matches := []Match{}
+	var (
+		matches        []Match
+		ordersToDelete []*Order
+	)
 
 	for _, order := range l.Orders {
 		match := l.fillOrder(o, order)
 		matches = append(matches, match)
+		l.TotalVolume -= match.SizeFilled
+
+		if order.IsFilled() {
+			ordersToDelete = append(ordersToDelete, order)
+		}
 
 		if o.IsFilled() {
 			break
 		}
+	}
+
+	for _, order := range ordersToDelete {
+		l.DeleteOrder(order)
 	}
 	return matches
 }
@@ -55,12 +67,12 @@ func (l *Limit) fillOrder(a, b *Order) Match {
 		ask = a
 	}
 
-	if a.Size>=b.Size{
-		a.Size-=b.Size
+	if a.Size >= b.Size {
+		a.Size -= b.Size
 		sizeFilled = b.Size
 		b.Size = 0
-	}else{
-		b.Size-=a.Size
+	} else {
+		b.Size -= a.Size
 		sizeFilled = a.Size
 		a.Size = 0
 	}

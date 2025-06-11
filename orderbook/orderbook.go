@@ -1,6 +1,9 @@
 package orderbook
 
-import "sort"
+import (
+	"fmt"
+	"sort"
+)
 
 type Orderbook struct {
 	Asks      []*Limit
@@ -18,17 +21,55 @@ func NewOrderbook() *Orderbook {
 	}
 }
 
+func (ob *Orderbook) AskTotalVolume() float64 {
+	totalVolume := 0.0
+
+	for i:=0; i < len(ob.Asks); i++ {
+		totalVolume += ob.Asks[i].TotalVolume
+	}
+	return totalVolume
+}
+
+func (ob *Orderbook) BidTotalVolume() float64 {
+	totalVolume := 0.0
+
+	for i:=0; i < len(ob.Bids); i++ {
+		totalVolume += ob.Bids[i].TotalVolume
+	}
+	return totalVolume
+}
+
 func (ob *Orderbook) PlaceMarketOrder(o *Order) []Match {
 	matches := []Match{}
 
-	if o.Bid{
-		
-	}else{
-
+	if o.Bid {
+		if o.Size > ob.AskTotalVolume() {
+			panic(fmt.Errorf("order size %v is greater than total volume %v", o.Size, ob.AskTotalVolume()))
+		}
+		sort.Sort(ByBestAsk{ob.Asks}) 
+		for _, limit := range ob.Asks {
+			limitMatches := limit.Fill(o)
+			matches = append(matches, limitMatches...)
+			if o.IsFilled() {
+				break
+			}
+		}
+	} else {
+		if o.Size > ob.BidTotalVolume() {
+			panic(fmt.Errorf("order size %v is greater than total volume %v", o.Size, ob.BidTotalVolume()))
+		}
+		sort.Sort(ByBestBid{ob.Bids})
+		for _, limit := range ob.Bids {
+			limitMatches := limit.Fill(o)
+			matches = append(matches, limitMatches...)
+			if o.IsFilled() {
+				break
+			}
+		}
 	}
-
 	return matches
 }
+
 
 func (ob *Orderbook) PlaceLimitOrder(price float64, o *Order) {
 	var limit *Limit
@@ -54,6 +95,7 @@ func (ob *Orderbook) PlaceLimitOrder(price float64, o *Order) {
 	}
 }
 
+//Temporary
 func (ob *Orderbook) GetAsks() []*Limit{
     sort.Sort(ByBestAsk{ob.Asks})
 
